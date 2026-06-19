@@ -12,7 +12,7 @@ set -o pipefail
 display_usage() {
 	# Display Help
 	echo "NAME" 
-	echo "		trans_shell_to_anki.sh" 
+	echo "		trans_to_anki_script.sh" 
 	echo ""
 	echo "DESCRIPTION"
 	echo "		This script lets you translate words and create Anki flashcards"
@@ -28,7 +28,7 @@ display_usage() {
 	echo "		After this you are prompted for the next word to be translated."
 	echo ""
 	echo "USAGE" 
-	echo "		./trans_shell_to_anki.sh <code a> <code b> <savepath>"
+	echo "		./trans_to_anki_script.sh <code a> <code b> <savepath>"
 	echo ""
 	echo "		code a 		= source language code e.g. en" 
 	echo "		code b 		= target language code e.g. es" 

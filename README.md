@@ -48,6 +48,12 @@ sudo pacman -S translate-shell
 
 ## Usage 
 
+```bash
+./trans_to_anki_script.sh <source language code> <target language code> <savepath>
+```
+
+Demo
 ![Usage Demo](./gifs/demo.gif)
 
-![Importing the deck in Anki](./gifs/anki_import.gif)
+Importing the deck in Anki
+![Anki Import](./gifs/anki_import.gif)
