@@ -191,14 +191,26 @@ validate_lang_code() {
 copy_mp3s_to_anki() {
 	# copy all mp3s from SAVE_PATH/audio to the Anki media folder
 	echo -e "\nIf your anki media folder is located at the default location" \
-		 	"(/home/user/.local/share/Anki2/User 1/collection.media/) press" \
-			" \"Enter\" otherwise enter the path of your Anki media folder here" \
+			"(/home/user/.local/share/Anki2/User 1/collection.media/) press" \
+			"\"Enter\" otherwise enter the path of your Anki media folder here" \
 			"(don't use ~ and don't escape spaces): "
 	read -r anki_folder_path
 	
-	if [[ $anki_folder_path == "" ]]; then 
-		anki_folder_path="$HOME/.local/share/Anki2/User 1/collection.media/"	
-	fi
+	while [[ ! -d $anki_folder_path ]]; do
+		if [[ $anki_folder_path == "" ]]; then 
+			if [[ -d "$HOME/.local/share/Anki2/User 1/collection.media/" ]]; then
+				anki_folder_path="$HOME/.local/share/Anki2/User 1/collection.media/"
+			else
+				echo -e "Your Anki media folder is not located at the default location. Please" \
+					"re-enter the path to your Anki media folder: "
+				read -r anki_folder_path
+			fi
+		else
+			echo -e "The folder path that you entered can not be found. Please re-enter" \
+				 "the path to your Anki media folder: "
+			read -r anki_folder_path
+		fi
+	done
 
 	echo "Copying the audio files to $anki_folder_path ..."
 	cp "$AUDIO_DIR_PATH"/*.mp3 "$anki_folder_path"
