@@ -189,6 +189,7 @@ validate_lang_code() {
 }
 
 copy_mp3s_to_anki() {
+
 	# copy all mp3s from SAVE_PATH/audio to the Anki media folder
 	echo -e "\nIf your anki media folder is located at the default location" \
 			"(/home/user/.local/share/Anki2/User 1/collection.media/) press" \
@@ -226,28 +227,35 @@ main() {
 	if [[ $@ == "--help" || $@ == "-h" || ! $# -eq 3 ]]; then 
 		display_usage
 		exit 0
-	fi
+	
+fi
 	
 	### Set global variables and validate input ###
 	
 	SOURCE_LANG=$1
 	TARGET_LANG=$2
-	SAVE_PATH=$3
+    SAVE_PATH="${3%/}"
 
 	validate_lang_code "$SOURCE_LANG"
 	validate_lang_code "$TARGET_LANG"
 
-	### Create folder and files	###
+	### Create folder and files and remove old ones if they exist ###
 
 	CARDS_FILE="$SAVE_PATH/anki_cards.txt"	
 	mkdir -p "$SAVE_PATH"
+	echo "Removing old anki flashcard file from $SAVE_PATH/ if one exists."
+    rm -f "$CARDS_FILE"
 	touch "$CARDS_FILE"
 
 	AUDIO_DIR_PATH="$SAVE_PATH/audio"
-	mkdir -p "$AUDIO_DIR_PATH"
-
+	echo "Removing old mp3 files from $AUDIO_DIR_PATH folder if there are already" \
+            "existing ones."
+    rm -f "$AUDIO_DIR_PATH"/*.mp3
+    mkdir -p "$AUDIO_DIR_PATH"
+    
 	### Start main loop ###
 
+	echo -e "\nScript main loop startet ... \n"
 	run_main_loop	
 	
 	### Check if user wants to copy mp3s before exiting the script ###
@@ -259,8 +267,10 @@ main() {
 		copy_mp3s_to_anki
 	fi
 
-	echo "To use your deck open Anki and import the $CARDS_FILE."
-	echo "Exiting script ..."
+	echo "To use your deck open Anki and import the $CARDS_FILE with a comma set as" \
+            "the delimiter."
+	
+    echo -e "\nExiting script ..."
 
 }
 
