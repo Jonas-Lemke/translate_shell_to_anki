@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e # Exit immediately if any return has a non-zero exit status
 set -u
 set -o pipefail
 #set -x # For Debugging
@@ -66,8 +66,15 @@ get_reply() {
 get_translations() {
 	word="$1"
 
-	# get Translate Shell output and display it
-	trans_shell_output="$(trans "$SOURCE_LANG":"$TARGET_LANG" "$word")"
+	# get Translate Shell output
+	trans_shell_output="$(trans "$SOURCE_LANG":"$TARGET_LANG" "$word")" 
+
+	# check for error
+	if [[ "$( echo -n "$trans_shell_output" )" == "" ]]; then
+        	return 1
+	fi
+	
+	# display Translate Shell output
 	echo "$trans_shell_output" > "$(tty)"
 
 	# get possible translations form the last line of the Translate Shell output
@@ -76,7 +83,7 @@ get_translations() {
 	# strip formating and leading spaces from the string of possible translations
 	# but keep commas between the translations for separation
 	poss_trans_clean=$(sed 's/^[[:space:]]*//; s/,[[:space:]]*/,/g;
-						 	s/\x1b\[1m//g; s/\x1b\[22m//g' <<< "$poss_trans")
+				s/\x1b\[1m//g; s/\x1b\[22m//g' <<< "$poss_trans")
 	
 	echo "$poss_trans_clean"
 }
@@ -86,27 +93,27 @@ select_translation() {
 	IFS=',' read -r -a poss_trans <<< "$2"
  
 	# display possible translations line by line
-    echo -e "\n\nPossible translations for \"$word\":" > "$(tty)"
-    for ((i=0; i<${#poss_trans[@]}; i++)); do
+	echo -e "\n\nPossible translations for \"$word\":" > "$(tty)"
+	for ((i=0; i<${#poss_trans[@]}; i++)); do
 		echo "$((i+1)): ${poss_trans[i]} " > "$(tty)"
-    done
+	done
 
-    # let the user choose one of the translations 
-    while true; do
-        echo -en "\nEnter the number for the translation you want to choose: " > "$(tty)"
-        read number
+	# let the user choose one of the translations 
+	while true; do
+		echo -en "\nEnter the number for the translation you want to choose: " > "$(tty)"
+		read number
 
-        if [[ ! $number =~ ^[0-9]*$ || $number -gt ${#poss_trans[@]} ||  
-              $number -lt 1 ]]; then
-            echo "Invalid number. Enter the number again." > "$(tty)"
+		if [[ ! $number =~ ^[0-9]*$ || $number -gt ${#poss_trans[@]} ||  
+			$number -lt 1 ]]; then
+		echo "Invalid number. Enter the number again." > "$(tty)"
 		else
 			chosen_trans=${poss_trans[((number - 1))]}
-            echo -e "Chosen translation: $chosen_trans\n" > "$(tty)"
-            break
+			echo -e "Chosen translation: $chosen_trans\n" > "$(tty)"
+			break
 		fi
-    done
+	done
 
-    echo "$chosen_trans"
+	echo "$chosen_trans"
 }
 
 save_card() {
@@ -138,11 +145,26 @@ run_main_loop() {
 		# let the user enter a word, pass it to Translate Shell, display the output
 		# and save possible translations comma separated in $translations
 		echo -n "Enter the word you want to translate or \"q\" to quit: "
-		read word		
+		read word
+
 		if [[ "$word" == "q" ]]; then
 			break
 		fi
+
+		if [[ "$word" == "" ]]; then
+			echo -e "\nWord should not be and empty string.\n"
+			continue
+		fi
+
+		# get possible translations for word
 		translations=$(get_translations "$word")
+	
+		# check status to see if there was an error getting the translations
+		if [[ "$?" = "1" ]]; then 
+			echo -e "\nAn error occurred while getting the translations for" \
+				"your word with Translate Shell. Please try again.\n"
+			continue
+		fi
 		
 		# check if user wants to save one of the translations to the deck
 		# if this is the case the string representing the card for the chosen 
@@ -166,7 +188,7 @@ run_main_loop() {
 validate_lang_code() {
 	# Check if language code exists in the list of vaild codes otherwise exit script
 	code=$1
-  	valid_codes=(
+	valid_codes=(
 				 am ar az ba be bg bn bs ca ceb co cs cy da de el emj en eo es et eu 
 				 fa fi fj fr fy ga gd gl gu ha haw he hi hmn hr ht hu hy id ig is it 
 				 ja jv ka kk km kn ko ku ky la lb lo lt lv mg mhr mi mk ml mn mr mrj
@@ -189,7 +211,6 @@ validate_lang_code() {
 }
 
 copy_mp3s_to_anki() {
-
 	# copy all mp3s from SAVE_PATH/audio to the Anki media folder
 	echo -e "\nIf your anki media folder is located at the default location" \
 			"(/home/user/.local/share/Anki2/User 1/collection.media/) press" \
@@ -227,14 +248,13 @@ main() {
 	if [[ $@ == "--help" || $@ == "-h" || ! $# -eq 3 ]]; then 
 		display_usage
 		exit 0
-	
-fi
+	fi
 	
 	### Set global variables and validate input ###
 	
 	SOURCE_LANG=$1
 	TARGET_LANG=$2
-    SAVE_PATH="${3%/}"
+	SAVE_PATH="${3%/}"
 
 	validate_lang_code "$SOURCE_LANG"
 	validate_lang_code "$TARGET_LANG"
@@ -244,18 +264,18 @@ fi
 	CARDS_FILE="$SAVE_PATH/anki_cards.txt"	
 	mkdir -p "$SAVE_PATH"
 	echo "Removing old anki flashcard file from $SAVE_PATH/ if one exists."
-    rm -f "$CARDS_FILE"
+	rm -f "$CARDS_FILE"
 	touch "$CARDS_FILE"
 
 	AUDIO_DIR_PATH="$SAVE_PATH/audio"
 	echo "Removing old mp3 files from $AUDIO_DIR_PATH folder if there are already" \
             "existing ones."
-    rm -f "$AUDIO_DIR_PATH"/*.mp3
-    mkdir -p "$AUDIO_DIR_PATH"
-    
+	rm -f "$AUDIO_DIR_PATH"/*.mp3
+	mkdir -p "$AUDIO_DIR_PATH"
+
 	### Start main loop ###
 
-	echo -e "\nScript main loop startet ... \n"
+	echo -e "\n\nScript main loop startet ... \n\n"
 	run_main_loop	
 	
 	### Check if user wants to copy mp3s before exiting the script ###
@@ -267,10 +287,10 @@ fi
 		copy_mp3s_to_anki
 	fi
 
-	echo "To use your deck open Anki and import the $CARDS_FILE with a comma set as" \
-            "the delimiter."
+	echo -e "\nTo use your deck open Anki and import the generated flashcard file which is" \
+            "located at $CARDS_FILE and set the delimiter to a comma."
 	
-    echo -e "\nExiting script ..."
+	echo -e "\nExiting script ..."
 
 }
 
